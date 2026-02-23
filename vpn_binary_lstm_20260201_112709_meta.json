@@ -1,0 +1,12 @@
+{
+  "model_path": "vpn_binary_lstm_20260201_112709.keras",
+  "input_shape": [
+    1,
+    80
+  ],
+  "threshold": 0.5,
+  "label_mapping": {
+    "non-VPN": 0,
+    "VPN": 1
+  }
+}
