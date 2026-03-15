@@ -9,21 +9,17 @@ from tensorflow.keras.models import Model
 from datetime import datetime
 import os
 
-# --- 1. Load and Preprocessing ---
 print("Loading data for Final V2 training...")
 df = pd.read_csv('Cleaned_Darknet.csv')
-# 'Label' contains ['Non-Tor', 'NonVPN', 'VPN', 'Tor']
-# Target is VPN detection
+
 df['is_vpn'] = (df['Label'] == 'VPN').astype(np.float32)
 
 X = df.drop(['Label', 'is_vpn'], axis=1)
 y = df['is_vpn']
 
-# Handle inf and nan
 X.replace([np.inf, -np.inf], np.nan, inplace=True)
 X.fillna(X.median(), inplace=True)
 
-# PowerTransformer (Yeo-Johnson) for better normalization of skewed flow data
 print("Applying PowerTransformer...")
 scaler = PowerTransformer(method='yeo-johnson')
 X_scaled = scaler.fit_transform(X)
@@ -32,12 +28,10 @@ X_train, X_test, y_train, y_test = train_test_split(
     X_scaled, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# SMOTE for balanced training
 print("Applying SMOTE...")
 smote = SMOTE(random_state=42)
 X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
 
-# --- 2. Residual MLP Architecture ---
 def residual_block(x, units, dropout_rate=0.2):
     shortcut = x
     x = Dense(units)(x)
@@ -48,7 +42,6 @@ def residual_block(x, units, dropout_rate=0.2):
     x = Dense(units)(x)
     x = BatchNormalization()(x)
     
-    # Projection if dimensions don't match
     if shortcut.shape[-1] != units:
         shortcut = Dense(units)(shortcut)
         
@@ -83,7 +76,6 @@ def build_residual_mlp(input_dim):
 model = build_residual_mlp(X_train.shape[1])
 model.summary()
 
-# --- 3. Training ---
 callbacks = [
     tf.keras.callbacks.EarlyStopping(monitor='val_auc', patience=10, restore_best_weights=True, mode='max'),
     tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=4, min_lr=1e-6),
@@ -99,7 +91,6 @@ history = model.fit(
     verbose=1
 )
 
-# --- 4. Save and Evaluate ---
 m_name = f"vpn_residual_mlp_{datetime.now().strftime('%Y%m%d_%H%M%S')}.keras"
 model.save(m_name)
 print(f"Model saved as {m_name}")
@@ -108,6 +99,5 @@ loss, acc, auc = model.evaluate(X_test, y_test, verbose=0)
 print(f"Final Test Accuracy: {acc:.4f}")
 print(f"Final Test AUC: {auc:.4f}")
 
-# Save scaler for evaluation script
 import joblib
 joblib.dump(scaler, 'scaler_v2.joblib')

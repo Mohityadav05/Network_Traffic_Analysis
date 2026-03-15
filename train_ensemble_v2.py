@@ -9,7 +9,6 @@ import joblib
 import os
 from datetime import datetime
 
-# --- 1. Load and Preprocessing ---
 print("Loading data...")
 df = pd.read_csv('Cleaned_Darknet.csv')
 df['is_vpn'] = (df['Label'] == 'VPN').astype(np.float32)
@@ -28,7 +27,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     X_scaled, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# --- 2. Train XGBoost ---
 print("Training XGBoost...")
 xgb = XGBClassifier(
     n_estimators=1000,
@@ -48,11 +46,9 @@ xgb_preds_prob = xgb.predict_proba(X_test)[:, 1]
 xgb_acc = accuracy_score(y_test, (xgb_preds_prob > 0.5).astype(int))
 print(f"XGBoost Test Accuracy: {xgb_acc:.4f}")
 
-# Save XGBoost
 xgb_name = f"vpn_xgboost_{datetime.now().strftime('%Y%m%d_%H%M%S')}.joblib"
 joblib.dump(xgb, xgb_name)
 
-# --- 3. Load MLP and Ensemble ---
 mlp_files = [f for f in os.listdir('.') if f.startswith('vpn_residual_mlp_') and f.endswith('.keras')]
 mlp_files.sort(reverse=True)
 if mlp_files:
@@ -61,7 +57,6 @@ if mlp_files:
     mlp = tf.keras.models.load_model(mlp_path)
     mlp_preds_prob = mlp.predict(X_test, verbose=0).flatten()
     
-    # Simple Weighting (Tune these if needed)
     ensemble_preds_prob = (0.6 * xgb_preds_prob) + (0.4 * mlp_preds_prob)
     ensemble_acc = accuracy_score(y_test, (ensemble_preds_prob > 0.5).astype(int))
     ensemble_auc = roc_auc_score(y_test, ensemble_preds_prob)
@@ -78,5 +73,4 @@ if mlp_files:
 else:
     print("No MLP found for ensemble.")
 
-# Save Scaler
 joblib.dump(scaler, 'scaler_v2.joblib')
