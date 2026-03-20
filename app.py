@@ -37,7 +37,6 @@ def load_sample_data():
         df = pd.read_csv('Cleaned_Darknet.csv', nrows=100)
         # Drop label columns
         features = df.drop(['Label', 'is_vpn'], axis=1, errors='ignore')
-        features = features.drop(['Label.1'], axis=1, errors='ignore')
         return df, features.columns.tolist()
     except Exception as e:
         st.error(f"Error loading sample data: {e}")
