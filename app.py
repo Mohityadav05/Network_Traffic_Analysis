@@ -2,7 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import tensorflow as tf
+try:
+    import tensorflow as tf
+    TF_AVAILABLE = True
+except ImportError:
+    TF_AVAILABLE = False
 import os
 import glob
 
@@ -48,9 +52,12 @@ selected_model = None
 model_instance = None
 
 if model_type == "Neural Network (.keras)" and keras_models:
-    selected_model = st.sidebar.selectbox("Select Model", keras_models)
-    if selected_model:
-        model_instance = tf.keras.models.load_model(selected_model)
+    if not TF_AVAILABLE:
+        st.sidebar.error("TensorFlow is not available. Please install it to use .keras models.")
+    else:
+        selected_model = st.sidebar.selectbox("Select Model", keras_models)
+        if selected_model:
+            model_instance = tf.keras.models.load_model(selected_model)
 elif model_type == "Machine Learning (.joblib)" and joblib_models:
     selected_model = st.sidebar.selectbox("Select Model", joblib_models)
     if selected_model:
@@ -123,6 +130,9 @@ if df_sample is not None and len(feature_cols) > 0:
                 
                 # Predict
                 if model_type == "Neural Network (.keras)":
+                    if not TF_AVAILABLE:
+                        st.error("TensorFlow is not available.")
+                        st.stop()
                     pred_prob = model_instance.predict(input_scaled, verbose=0)[0][0]
                     is_vpn = pred_prob > 0.5
                     confidence = pred_prob if is_vpn else 1 - pred_prob
