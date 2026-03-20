@@ -46,7 +46,7 @@ def load_sample_data():
 df_sample, feature_cols = load_sample_data()
 
 st.sidebar.header("Configuration")
-model_type = st.sidebar.radio("Select Model Type", ["Neural Network (.keras)", "Machine Learning (.joblib)"])
+model_type = st.sidebar.radio("Select Model Type", ["Neural Network (.keras)", "Machine Learning (.joblib)"], index=1)
 
 selected_model = None
 model_instance = None
