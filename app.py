@@ -33,8 +33,11 @@ keras_models, joblib_models, scaler = load_models()
 @st.cache_data
 def load_sample_data():
     try:
-        # Load just a few rows to get features
-        df = pd.read_csv('Cleaned_Darknet.csv', nrows=100)
+        # Load 50 regular flows and 50 VPN flows to ensure both are available
+        df_full = pd.read_csv('Cleaned_Darknet.csv')
+        df_vpn = df_full[df_full['Label'] == 'VPN'].head(50)
+        df_non = df_full[df_full['Label'] != 'VPN'].head(50)
+        df = pd.concat([df_non, df_vpn]).reset_index(drop=True)
         # Drop label columns
         features = df.drop(['Label', 'is_vpn'], axis=1, errors='ignore')
         return df, features.columns.tolist()
