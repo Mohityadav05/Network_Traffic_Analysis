@@ -1,61 +1,48 @@
-# Final Research — Project Index
+# Network Traffic Analysis — VPN Traffic Classifier
 
-Short index and quick start for this repository containing dataset files, trained models, and the analysis notebook.
+Classifies network flows as **VPN** or **Non-VPN** using flow-level statistics
+(packet timing, size, and inter-arrival features) from a CIC-Darknet-style
+dataset. Ensemble of XGBoost + a residual MLP (Keras), served through a
+Streamlit app.
 
-## Overview
-- This repo holds Darknet-related datasets, processed splits, trained LSTM models, and an analysis notebook used for experiments.
+## Live demo
+Run locally or deploy on Streamlit Community Cloud (see below).
 
 ## Repository structure
-- `Cleaned_Darknet.csv` — cleaned CSV dataset used for model training and analysis.
-- `research.ipynb` — Jupyter notebook containing data exploration and training/evaluation experiments.
-- `vpn_binary_lstm_20251110_095646.keras` + `_meta.json` — saved Keras model and metadata (older run).
-- `vpn_binary_lstm_20260201_112709.keras` + `_meta.json` — saved Keras model and metadata (later run).
-- `.gitignore` — rules for files that should not be tracked (large raw datasets, checkpoints).
+- `app.py` — Streamlit app: pick a sample flow or upload a CSV, get a VPN / Non-VPN prediction with confidence.
+- `Cleaned_Darknet.csv` — flow-level dataset (CIC-Darknet2020-style) used for training and for sample flows in the app.
+- `train_clean.py` — training script (XGBoost + residual MLP + SMOTE).
+- `research.ipynb` — exploration / experiments notebook.
+- `vpn_xgboost_clean_v3.joblib`, `vpn_residual_mlp_clean_v3.keras` — trained models.
+- `scaler_v3_clean.joblib` — PowerTransformer fit on the training features.
+- `feature_names_clean.joblib` — exact ordered list of 79 input feature columns the models expect.
 
-> Note: Some large/raw files (e.g., full raw `Darknet.csv` or large .npz splits) may be intentionally untracked.
+## A note on a bug that was fixed
+The dataset has **two label columns**: `Label` (Non-Tor/NonVPN/Tor/VPN) and
+`Label.1` (an encoded application category — Browsing, Chat, VOIP, etc.).
+Earlier versions of the training scripts only dropped `Label`, so `Label.1`
+leaked into the model as an input feature — in several categories it predicted
+the traffic type with 99–100% purity. Both label columns are now dropped
+before training (`train_clean.py`), and the shipped models were retrained
+clean. Ensemble test performance after the fix: **98.16% accuracy, 0.998 AUC**
+on a held-out 20% split — legitimate numbers based only on real flow
+statistics.
 
-## Quick start
-1. Create and activate a Python virtual environment:
-
+## Quick start (local)
 ```bash
-python -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1   # PowerShell
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-2. Install common dependencies (adjust versions as needed):
+## Deploy (Streamlit Community Cloud)
+1. Push this repo to GitHub (already done if you're reading this on GitHub).
+2. Go to https://share.streamlit.io, sign in with GitHub.
+3. "New app" → select this repo → branch `main` → main file path `app.py`.
+4. Deploy. First boot installs `tensorflow-cpu`, which can take a few minutes.
 
+## Retraining
 ```bash
-pip install -U pip
-pip install numpy pandas jupyter tensorflow
+python train_clean.py
 ```
-
-3. Open the notebook for exploration and to re-run experiments:
-
-```bash
-jupyter notebook research.ipynb
-```
-
-4. Load a saved Keras model (example):
-
-```python
-from tensorflow.keras.models import load_model
-model = load_model('vpn_binary_lstm_20260201_112709.keras')
-```
-
-## Data notes
-- If you need raw datasets that are not tracked, check `.gitignore` and restore them from backups or a data storage location before running the notebook.
-
-## Commit & push
-- To add this README and push to a remote:
-
-```bash
-git add README.md
-git commit -m "Add README with project index"
-git push origin main
-```
-
-## License
-- Add a `LICENSE` file if you want to publish this repository publicly.
-
----
-Generated: README index for quick GitHub presentation.
+Produces a timestamped scaler + XGBoost + Keras model and a
+`clean_model_manifest.txt` with metrics.
