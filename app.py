@@ -137,12 +137,19 @@ with tab_single:
 
         key_features = ["Src Port", "Dst Port", "Protocol", "Flow Duration", "Total Fwd Packet", "Total Bwd packets"]
 
+        # NOTE: widget keys include sample_idx so that switching the sample
+        # forces Streamlit to create fresh widgets (and pick up the new
+        # value=...) instead of silently keeping stale values from whichever
+        # sample was loaded first. Without this, only the dropdown/data
+        # changes on sample switch, not the actual number inputs.
         st.markdown("#### Key Features")
         k_cols = st.columns(3)
         for i, feature in enumerate(key_features):
             if feature in feature_cols:
                 val = st.session_state["current_features"][feature]
-                new_val = k_cols[i % 3].number_input(feature, value=float(val), key=f"key_{feature}")
+                new_val = k_cols[i % 3].number_input(
+                    feature, value=float(val), key=f"key_{sample_idx}_{feature}"
+                )
                 st.session_state["current_features"][feature] = new_val
 
         with st.expander(f"Show all {len(feature_cols)} network features"):
@@ -150,7 +157,9 @@ with tab_single:
             adv_features = [f for f in feature_cols if f not in key_features]
             for i, feature in enumerate(adv_features):
                 val = st.session_state["current_features"][feature]
-                new_val = a_cols[i % 4].number_input(feature, value=float(val), key=f"adv_{feature}")
+                new_val = a_cols[i % 4].number_input(
+                    feature, value=float(val), key=f"adv_{sample_idx}_{feature}"
+                )
                 st.session_state["current_features"][feature] = new_val
 
         st.markdown("---")
